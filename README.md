@@ -10,16 +10,19 @@ that runtime without having to draw the tree.
 
 This lab teaches three things.
 
-1. **Functions are objects.**  You can pass them to other functions
-   and get them back, and `inspect.getsource` lets you look at the
-   source of any function object.  A *decorator* is just a function
-   that takes a function and returns another function.
+1. **A graph is just data.**  A picture of a tree is not the tree.
+   graphviz separates "describe the graph" (the DOT language, a
+   small text format) from "render the graph" (the `dot` program,
+   which draws a PNG).  You will write DOT by hand and render it
+   from the command line.  This is the same pattern as a compiler
+   emitting assembly and an *assembler* turning that assembly into
+   a binary.
 
-2. **graphviz outputs an intermediate language.**  A compiler
-   outputs assembly and the *assembler* turns it into a binary.
-   Similarly, graphviz outputs the *DOT language* and the `dot`
-   program turns it into a PNG.  Separating "describe" from
-   "render" is a recurring pattern in software.
+2. **Functions are objects.**  You can pass them to other functions
+   and get them back.  A *decorator* is just a function that takes
+   a function and returns another function.  The `trace` decorator
+   in this lab writes a DOT file every time you call the function
+   it wraps.
 
 3. **The master theorem summarizes a picture.**  When a recurrence
    has the form T(n) = a T(n/b) + f(n), the master theorem gives
@@ -42,9 +45,10 @@ $ pip3 install -r requirements.txt
 ```
 
 > **NOTE:**
-> The `graphviz` python package is a thin wrapper around the `dot`
-> binary.  The binary is preinstalled on the lambda server, but on
-> your own computer you will need to install it yourself.  See
+> This lab does not use the `graphviz` python package.  Instead, it
+> renders DOT files by calling the `dot` program directly.  The
+> binary is preinstalled on the lambda server, but on your own
+> computer you will need to install it yourself.  See
 > <https://graphviz.org/download/>.
 
 Verify that the supporting files are correct by running the
@@ -56,7 +60,81 @@ $ python3 -m doctest trace.py
 
 You should see no output if all the tests pass.
 
-## Part 1: Functions are objects
+## Part 1: The DOT language
+
+This part introduces the *intermediate language* that graphviz
+uses to describe graphs.
+
+### A hello world graph
+
+Create a file called `hello.dot` with the following contents:
+```
+digraph {
+    a [label="root"]
+    b [label="left"]
+    c [label="right"]
+    a -> b
+    a -> c
+}
+```
+
+A DOT file describes a graph as a list of statements between
+braces.  The keyword `digraph` means "directed graph" (use `graph`
+for undirected).  Each statement is one of:
+
+- `a [label="root"]` — a *node* named `a`, with an attribute.
+- `a -> b` — a *directed edge* from `a` to `b`.  (In an undirected
+  graph the arrow is `--` instead of `->`.)
+
+That is the entire language you need for this lab.  Everything
+else is attributes you can set with `key=value` inside `[...]`.
+
+### Rendering with the `dot` program
+
+The `dot` program reads a DOT file and writes a picture.  To render
+your file to a PNG:
+```
+$ dot -Tpng hello.dot -o hello.png
+```
+
+The `-T` flag selects the output format.  Try a few:
+```
+$ dot -Tsvg hello.dot -o hello.svg
+$ dot -Tpdf hello.dot -o hello.pdf
+$ dot -Tpng hello.dot -o hello.png
+```
+The same DOT source produces the same graph in three different file
+formats.  This is exactly the pattern of a compiler: a frontend
+emits an intermediate language (assembly, DOT), and a backend turns
+that intermediate language into a target (a binary, a PNG).  The
+intermediate language is the *useful* artifact: it is text,
+readable, diffable, and editable.  The PNG is just one possible
+rendering.
+
+The `dot` program also provides several layout engines.  By default
+`dot` draws *hierarchical* layouts (good for trees).  The `neato`,
+`circo`, and `fdp` programs use different layout algorithms, and
+you can pick one with the `-K` flag:
+```
+$ dot -Kneato -Tpng hello.dot -o hello_neato.png
+```
+You will not need these for this lab, but they are one reason the
+separation between DOT (the description) and rendering (the
+picture) is useful.
+
+### Viewing PNGs on the lambda server
+
+You cannot view images in a terminal.  The simplest way to view
+them on the lambda server is to commit and push to github, and
+then reference them from this README:
+```html
+<img src=hello.png width=400px>
+```
+Try it now: copy the HTML line above into your README, commit,
+push, and refresh this page on github.  You should see your
+three-node graph.
+
+## Part 2: Functions are objects
 
 In python, functions are *first-class objects*.  That means you can
 store them in variables, pass them to other functions, and return
@@ -140,7 +218,7 @@ def inc(x): ...
 inc = twice(inc)
 ```
 
-## Part 2: The `trace` decorator
+### The `trace` decorator
 
 The file `trace.py` defines a decorator with the signature
 ```python
@@ -150,12 +228,19 @@ It returns a wrapper of `f` that:
 
 1. behaves *identically* to `f` (same inputs, same output, same
    exceptions), and
-2. as a side effect, writes a graphviz DOT file and a PNG
-   describing the *call tree* of `f`.
+2. as a side effect, writes a graphviz DOT file describing the
+   *call tree* of `f`.
 
-You do not need to read or understand the body of `trace.py` to
-use it; treat it as a black box that takes a function and returns
-a "traced" version of the function.
+Unlike earlier labs, `trace` does **not** render a PNG for you.
+It writes the DOT source and stops there.  You render the picture
+yourself:
+```
+$ dot -Tpng fib.dot -o fib.png
+```
+This is deliberate.  The DOT file is the intermediate language,
+and it is more useful than the PNG for debugging: you can read
+it, diff it, edit it by hand, and feed it to the other graphviz
+tools you saw in Part 1.
 
 ### Prove transparency by example
 
@@ -187,18 +272,21 @@ changed the behavior of `fib`.
 
 Once you trust the decorator, you can use the `@` sugar anywhere:
 ```python
-@trace
+@trace(outputfile='fib.dot')
 def fib(n):
     if n < 2:
         return n
     return fib(n - 1) + fib(n - 2)
 ```
-Now every call to `fib` writes a DOT file and PNG.  Try it on a
-small input:
+Now every call to `fib` writes a DOT file.  Try it on a small
+input:
 ```
 >>> fib(5)
 ```
-You should see a file `fib.png` appear.
+You should see a file `fib.dot` appear.  Render it with:
+```
+$ dot -Tpng fib.dot -o fib.png
+```
 
 ### `functools.wraps` and introspection
 
@@ -224,35 +312,6 @@ The same trick works on functions decorated with
 `functools.lru_cache`, which is the last decorator we will see in
 this lab.
 
-### The DOT language
-
-Look at the file that `trace` produced:
-```
-$ cat fib
-
-digraph {
-    ...
-}
-```
-This is the *DOT language*: a textual description of the tree.
-The `dot` program reads DOT and renders it to a PNG.  This is the
-same separation of concerns as `gcc -S` producing an assembly file
-and `as` turning that assembly into an object file.  The
-intermediate language (DOT, assembly) is far more useful than the
-final artifact (PNG, object file) for debugging and for feeding
-other tools.
-
-### Viewing PNGs on the lambda server
-
-You cannot view images in the terminal.  The simplest way to view
-them on the lambda server is to commit and push to github, and
-then reference them from this README:
-```html
-<img src=fib.png width=400px>
-```
-Try it now: copy the HTML line above into your README, commit,
-push, and refresh this page on github.  You should see your tree.
-
 ## Part 3: Trees for algorithms you already know
 
 You have already seen several recursive algorithms this semester.
@@ -263,9 +322,14 @@ The functions live in `recurrences.py`.  To trace one:
 ```
 >>> from trace import trace
 >>> from recurrences import bsearch
->>> traced = trace(bsearch, 'bsearch.png')
+>>> traced = trace(bsearch, 'bsearch.dot')
 >>> traced(list(range(64)), 17)
 ```
+Then render the DOT file:
+```
+$ dot -Tpng bsearch.dot -o bsearch.png
+```
+
 You will need to choose a value of n that is small enough for the
 tree to be legible and large enough to show the shape.  For
 balanced splits, n = 8 works well; for exponential functions, you
