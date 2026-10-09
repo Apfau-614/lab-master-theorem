@@ -28,6 +28,7 @@ Doctests:
 import functools
 import os
 import subprocess
+import types
 
 
 def trace(f, outputfile=None, highlight_duplicates=True):
@@ -68,7 +69,7 @@ def trace(f, outputfile=None, highlight_duplicates=True):
         nodes.append((node_id, label, parent, dup))
         stack.append(node_id)
         try:
-            return f(*args, **kwargs)
+            return traced_f(*args, **kwargs)
         finally:
             stack.pop()
             # When the outermost call returns, write the tree and
@@ -80,13 +81,33 @@ def trace(f, outputfile=None, highlight_duplicates=True):
                 del nodes[:]
                 seen.clear()
 
-    # Rebind f's name in its defining module to the wrapper.  This is
-    # what makes recursive calls inside f's body reach the wrapper:
-    # when f's body evaluates `f(...)`, it looks up `f` in its
-    # module's global namespace, which now points at the wrapper.
-    g = getattr(f, '__globals__', None) or f.__wrapped__.__globals__
-    g[f.__name__] = wrapper
-    #f.__globals__[f.__name__] = wrapper
+    # Follow the __wrapped__ chain (functools.lru_cache and friends
+    # expose the function they wrap this way) down to the underlying
+    # function whose code contains the recursive calls.
+    code_f = f
+    while not hasattr(code_f, '__code__') and hasattr(code_f, '__wrapped__'):
+        code_f = code_f.__wrapped__
+
+    # Duplicate code_f with a private copy of its globals in which its
+    # own name points at the wrapper.  Recursive calls inside the body
+    # then reach the wrapper, while the original module's globals stay
+    # untouched.
+    g = dict(code_f.__globals__)
+    g[code_f.__name__] = wrapper
+    code_copy = types.FunctionType(
+        code_f.__code__, g, code_f.__name__,
+        code_f.__defaults__, code_f.__closure__,
+    )
+    code_copy.__kwdefaults__ = code_f.__kwdefaults__
+
+    # Rebuild any outer wrapper (e.g. functools.lru_cache) on top of
+    # the copy, so that calls from the wrapper go through it.
+    if code_f is f:
+        traced_f = code_copy
+    elif hasattr(f, 'cache_info'):
+        traced_f = functools.lru_cache(code_copy)
+    else:
+        traced_f = code_copy
 
     return wrapper
 
