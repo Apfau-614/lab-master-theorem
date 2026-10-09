@@ -7,9 +7,10 @@ exceptions).  It additionally records every call to the function --
 including recursive calls, provided the function calls itself by
 name -- and writes them to a graphviz DOT file.
 
-The DOT source is generated directly, without the graphviz library,
-and outputfile names a .dot file rather than a .png.  Render it
-yourself with any graphviz layout program:
+The DOT source is generated directly, without the graphviz library.
+If outputfile ends in .png, the decorator shells out to the `dot`
+program with subprocess.run to render the picture; otherwise it
+writes the DOT source and stops there:
 
     $ dot -Tpng fib.dot -o fib.png
 
@@ -25,9 +26,11 @@ Doctests:
     True
 '''
 import functools
+import os
+import subprocess
 
 
-def trace(f, outputfile=None):
+def trace(f, outputfile=None, highlight_duplicates=True):
     '''
     Return a version of f that writes its recursion tree to outputfile.
 
@@ -38,22 +41,31 @@ def trace(f, outputfile=None):
     node is labelled with the name of the function and the
     arguments of the call.
 
+    If outputfile ends in .png, the DOT source is written to the
+    matching .dot file and the `dot` program is run to render the
+    PNG.  If highlight_duplicates is true, any call whose arguments
+    have been seen before is filled light blue; the first call with
+    a given set of arguments stays white.
+
     >>> from recurrences import binom
     >>> binom3 = trace(binom)
     >>> binom3(5, 2) == binom(5, 2)
     True
     '''
-    nodes = []     # list of (node_id, label, parent_id)
+    nodes = []     # list of (node_id, label, parent_id, duplicate)
     stack = []     # current call stack of node_ids
     counter = [0]  # mutable counter of node_ids
+    seen = set()   # labels of calls already made
 
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         node_id = counter[0]
         counter[0] += 1
         label = f.__name__ + _label(args, kwargs)
+        dup = highlight_duplicates and label in seen
+        seen.add(label)
         parent = stack[-1] if stack else None
-        nodes.append((node_id, label, parent))
+        nodes.append((node_id, label, parent, dup))
         stack.append(node_id)
         try:
             return f(*args, **kwargs)
@@ -63,9 +75,10 @@ def trace(f, outputfile=None):
             # reset the state so the next top-level call starts fresh.
             if not stack:
                 if outputfile is not None:
-                    _write_dot(nodes, outputfile)
+                    _render(nodes, outputfile)
                 counter[0] = 0
                 del nodes[:]
+                seen.clear()
 
     # Rebind f's name in its defining module to the wrapper.  This is
     # what makes recursive calls inside f's body reach the wrapper:
@@ -102,9 +115,28 @@ def _escape(s):
     return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
 
 
-def _write_dot(nodes, outputfile):
+def _render(nodes, outputfile):
     '''
-    Write a list of (node_id, label, parent_id) tuples as DOT source.
+    Write the tree as DOT source and, for a .png name, a PNG too.
+
+    If outputfile ends in .png, the DOT source is written to the
+    matching .dot file and the `dot` program is run with
+    subprocess.run to produce the picture; otherwise outputfile is
+    itself the DOT file.
+    '''
+    base, ext = os.path.splitext(outputfile)
+    dotfile = base + '.dot' if ext == '.png' else outputfile
+    _write_dot(nodes, dotfile)
+    if ext == '.png':
+        subprocess.run(['dot', '-Tpng', dotfile, '-o', outputfile], check=True)
+
+
+def _write_dot(nodes, dotfile):
+    '''
+    Write a list of (node_id, label, parent_id, duplicate) tuples as DOT.
+
+    Duplicate calls (where duplicate is true) are filled light blue;
+    the first call with a given set of arguments stays white.
 
     The DOT language is a small text format, so we format it by hand
     instead of pulling in the graphviz library.  The resulting file
@@ -114,11 +146,14 @@ def _write_dot(nodes, outputfile):
     '''
     lines = ['digraph {']
     lines.append('    node [shape=box fontname="Courier" fontsize="10"]')
-    for node_id, label, parent in nodes:
-        lines.append('    {} [label="{}"]'.format(node_id, _escape(label)))
-    for node_id, label, parent in nodes:
+    for node_id, label, parent, dup in nodes:
+        attrs = 'label="{}"'.format(_escape(label))
+        if dup:
+            attrs += ' fillcolor="lightblue" style="filled"'
+        lines.append('    {} [{}]'.format(node_id, attrs))
+    for node_id, label, parent, dup in nodes:
         if parent is not None:
             lines.append('    {} -> {}'.format(parent, node_id))
     lines.append('}')
-    with open(outputfile, 'w') as fp:
+    with open(dotfile, 'w') as fp:
         fp.write('\n'.join(lines) + '\n')
