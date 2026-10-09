@@ -63,7 +63,7 @@ Try it with the code below:
 >>> trace_merge_sorted(xs)
 [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 ```
-Add/commit/push it to github so that it appears in the picture below.
+Add/commit/push the file to github so that the image below displays.
 
 <img src=merge_sorted.png />
 
@@ -91,7 +91,7 @@ Trace the function to see the duplication in the call graph:
 >>> trace_power(2, 8)
 256
 ```
-Add/commit/push the `power.png` file so that the image below displays.
+Add/commit/push the file to github so that the image below displays.
 <img src=power.png />
 
 Every call with an even exponent appears twice in the graph.
@@ -123,6 +123,7 @@ Trace it and compare the two call graphs:
 >>> trace_modified_pow(2, 8)
 256
 ```
+Add/commit/push the file to github so that the image below displays.
 <img src=modified_pow.png />
 
 The call graph is now linear (instead of a tree).
@@ -157,6 +158,7 @@ Trace the runtime on a small value and observe:
 21
 >>> trace_fast_fib(40) # will take years to finish; run it and press CTRL-C to stop
 ```
+Add/commit/push the file to github so that the image below displays.
 <img src=fib.png />
 
 Looking at the graph, it is easy to see that `fib` is called with the same number of arguments many times.
@@ -181,6 +183,7 @@ And now let's trace `fib` instead of `fast_fib`:
 >>> trace_fast_fib(40) # should now finish instantly
 102334155
 ```
+Add/commit/push the file to github so that the image below displays.
 <img src=fast_fib.png />
 
 The graph now has a node for each distinct call to `fib` and most of the duplicates have been eliminated.
