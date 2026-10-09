@@ -1,3 +1,4 @@
+# lab: master theorem
 <!-- byexample: +ellipsis -->
 
 In this lab we will practice working with recursive functions and the master theorem.
@@ -154,7 +155,7 @@ Trace the runtime on a small value and observe:
 >>> trace_fib = trace(fib, 'fib.png')
 >>> trace_fib(8)
 21
->>> trace_fib(40) # takes forever to run; try it, then press CTRL-C to stop
+>>> trace_fast_fib(40) # will take years to finish; run it and press CTRL-C to stop
 ```
 <img src=fib.png />
 
@@ -166,15 +167,18 @@ There is no single subproblem to store in a variable.
 
 ### `functools.lru_cache`
 
-Python provides a function that memoizes for us automatically called `functools.lru_cache`.
-
+Python provides a function that memoizes for us automatically called `lru_cache` in the `functools` module.
+We can apply it to the `fib` function like so:
 ```
 >>> import functools
 >>> fast_fib = functools.lru_cache(fib)
+```
+And now let's trace `fib` instead of `fast_fib`:
+```
 >>> trace_fast_fib = trace(fast_fib, 'fast_fib.png')
 >>> trace_fast_fib(8)
 21
->>> trace_fast_fib(40)
+>>> trace_fast_fib(40) # should now finish instantly
 102334155
 ```
 <img src=fast_fib.png />
@@ -201,7 +205,7 @@ For each function:
 
 | function | recurrence $T(n)$ | master theorem? | solution $\Theta(\cdot)$ | does memoization help? |
 | --- | --- | --- | --- | --- |
-| `bsearch`         | | | | |
+| `binary_search`   | | | | |
 | `merge_sorted`    | $T(n) = 2T(n/2) + \Theta(n)$ | yes | $T(n) = \Theta(n\log n)$ | no |
 | `quick_sorted`    | $T(n) = 2T(n/2) + \Theta(n)$ | yes | $T(n) = \Theta(n\log n)$ | |
 | `quick_select`    | | | | |
