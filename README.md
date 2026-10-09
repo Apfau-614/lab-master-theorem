@@ -282,7 +282,6 @@ And we can actually run on large inputs quickly:
 >>> fib(40)
 102334155
 ```
-
 The recurrence is
 $$T(n) = T(n-1) + \Theta(1).$$
 Like the original `fib` recurrence, this is not of the form that the master theorem requires,
