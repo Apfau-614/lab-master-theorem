@@ -204,6 +204,7 @@ Trace it and compare the two call graphs:
 4294967296
 ```
 Add/commit/push the file to github so that the image below displays.
+
 <img src=modified_pow.png />
 
 The call graph is now linear (instead of a tree).

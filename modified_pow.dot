@@ -1,0 +1,16 @@
+digraph {
+    node [shape=box fontname="Courier" fontsize="10"]
+    0 [label="modified_pow(2, 32)"]
+    1 [label="modified_pow(2, 16)"]
+    2 [label="modified_pow(2, 8)"]
+    3 [label="modified_pow(2, 4)"]
+    4 [label="modified_pow(2, 2)"]
+    5 [label="modified_pow(2, 1)"]
+    6 [label="modified_pow(2, 0)"]
+    0 -> 1
+    1 -> 2
+    2 -> 3
+    3 -> 4
+    4 -> 5
+    5 -> 6
+}
