@@ -306,7 +306,7 @@ For each function:
 
 | function | recurrence $T(n)$ | master theorem? | solution $\Theta(\cdot)$ | does memoization help? |
 | --- | --- | --- | --- | --- |
-| `binary_search`   | | | | |
+| `binary_search`   | $T(n) = T(n/2) + \Theta(n)$ | yes | $T(n) = \Theta(\log n)$| |
 | `merge_sorted`    | $T(n) = 2T(n/2) + \Theta(n)$ | yes | $T(n) = \Theta(n\log n)$ | no |
 | `quick_sorted`    | $T(n) = 2T(n/2) + \Theta(n)$ | yes | $T(n) = \Theta(n\log n)$ | |
 | `quick_select`    | $T(n) =  T(n/2) + \Theta(n)$ | yes | | |
