@@ -208,17 +208,15 @@ For each function:
 | `binary_search`   | | | | |
 | `merge_sorted`    | $T(n) = 2T(n/2) + \Theta(n)$ | yes | $T(n) = \Theta(n\log n)$ | no |
 | `quick_sorted`    | $T(n) = 2T(n/2) + \Theta(n)$ | yes | $T(n) = \Theta(n\log n)$ | |
-| `quick_select`    | | | | |
+| `quick_select`    | $T(n) =  T(n/2) + \Theta(n)$ | yes | | |
 | `sequential_search_rec` | | | | |
-| `power`           | $T(n) = 2T(n/2) + \Theta(1)$| | | |
-| `modified_power`  | $T(n) =  T(n/2) + \Theta(1)$| | | |
-| `fib`             | | | | |
-| `hanoi`           | | | | |
-| `binom`           | | | | |
-| `grid_paths`      | | | | |
-| `edit_distance`   | | | | |
-| `subsets`         | | | | |
-| `foo`             | | | | |
+| `power`           | $T(n) = 2T(n/2) + \Theta(1)$ | yes | | yes |
+| `modified_power`  | $T(n) =  T(n/2) + \Theta(1)$ | yes | | no (already memoized) |
+| `fib`             | $T(n) =  T(n-1) + T(n-2) + \Theta(1)$ | no  | --- | yes |
+| `fast_fib`        | $T(n) =  T(n-1) + \Theta(1)$ | no  | --- | no (already memoized) |
+| `foo1`            | | | | |
+| `foo2`            | | | | |
+| `foo3`            | | | | |
 
 ## Submission
 

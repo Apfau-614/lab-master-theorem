@@ -15,15 +15,15 @@ Run the doctests with:
 # Part 3: algorithms you already know
 # ---------------------------------------------------------------------------
 
-def bsearch(xs, y, lo=0, hi=None):
+def binary_search(xs, y, lo=0, hi=None):
     '''
     Return True if y is in the sorted sequence xs.
 
-    >>> bsearch([1, 3, 5, 7, 9, 11], 9)
+    >>> binary_search([1, 3, 5, 7, 9, 11], 9)
     True
-    >>> bsearch([1, 3, 5, 7, 9, 11], 8)
+    >>> binary_search([1, 3, 5, 7, 9, 11], 8)
     False
-    >>> bsearch(list(range(-1000, 1000, 2)), 9)
+    >>> binary_search(list(range(-1000, 1000, 2)), 9)
     False
     '''
     if hi is None:
@@ -34,8 +34,8 @@ def bsearch(xs, y, lo=0, hi=None):
     if xs[mid] == y:
         return True
     if xs[mid] > y:
-        return bsearch(xs, y, lo, mid - 1)
-    return bsearch(xs, y, mid + 1, hi)
+        return binary_search(xs, y, lo, mid - 1)
+    return binary_search(xs, y, mid + 1, hi)
 
 
 def merge_sorted(xs):
@@ -164,36 +164,6 @@ def fib(n):
     return fib(n - 1) + fib(n - 2)
 
 
-def hanoi(n, a, b, c):
-    '''
-    Return the list of moves that solves the tower of hanoi.
-
-    >>> hanoi(1, 'A', 'B', 'C')
-    [('A', 'C')]
-    >>> len(hanoi(3, 'A', 'B', 'C'))
-    7
-    '''
-    if n == 0:
-        return []
-    return (hanoi(n - 1, a, c, b)
-            + [(a, c)]
-            + hanoi(n - 1, b, a, c))
-
-
-def binom(n, k):
-    '''
-    Return the binomial coefficient C(n, k).
-
-    >>> binom(5, 2)
-    10
-    >>> binom(10, 5)
-    252
-    '''
-    if k == 0 or k == n:
-        return 1
-    return binom(n - 1, k - 1) + binom(n - 1, k)
-
-
 def grid_paths(m, n):
     '''
     Return the number of monotone paths from (0, 0) to (m, n).
@@ -210,57 +180,53 @@ def grid_paths(m, n):
     return grid_paths(m - 1, n) + grid_paths(m, n - 1)
 
 
-def edit_distance(a, b, i=None, j=None):
+def foo1(xs):
     '''
-    Return the Levenshtein distance between strings a and b.
+    A function whose recurrence is T(n) = 4T(n/2) + Theta(1).
 
-    >>> edit_distance('cat', 'bat')
-    1
-    >>> edit_distance('kitten', 'sitting')
-    3
+    >>> foo1([1, 2, 3, 4])
+    16
+    >>> foo1([])
+    0
     '''
-    if i is None:
-        i = len(a)
-    if j is None:
-        j = len(b)
-    if i == 0:
-        return j
-    if j == 0:
-        return i
-    if a[i - 1] == b[j - 1]:
-        return edit_distance(a, b, i - 1, j - 1)
-    return 1 + min(
-        edit_distance(a, b, i - 1, j),
-        edit_distance(a, b, i, j - 1),
-        edit_distance(a, b, i - 1, j - 1),
-    )
+    if len(xs) <= 1:
+        return len(xs)
+    mid = len(xs) // 2
+    return foo1(xs[:mid]) + foo1(xs[mid:]) + foo1(xs[:mid]) + foo1(xs[mid:])
 
 
-def subsets(xs, i=0):
+def foo2(xs):
     '''
-    Return the list of all subsets of the tuple xs.
+    A function whose recurrence is T(n) = 2T(n/2) + Theta(n).
 
-    >>> sorted(subsets((1, 2)))
-    [(), (1,), (1, 2), (2,)]
-    >>> len(subsets((1, 2, 3)))
-    8
-    '''
-    if i == len(xs):
-        return [()]
-    without = subsets(xs, i + 1)
-    with_x = [(xs[i],) + s for s in without]
-    return without + with_x
-
-
-def foo(xs, i=0):
-    '''
-    The function from class.
-
-    >>> foo((1, 2, 3, 4))
+    >>> foo2([1, 2, 3, 4])
     20
-    >>> foo(())
-    1
+    >>> foo2([])
+    0
     '''
-    if i >= len(xs):
-        return 1
-    return xs[i] + foo(xs, i + 1) + foo(xs, i + 3)
+    if len(xs) <= 1:
+        return 0
+    total = 0
+    for x in xs:
+        total += x
+    mid = len(xs) // 2
+    return total + foo2(xs[:mid]) + foo2(xs[mid:])
+
+
+def foo3(xs):
+    '''
+    A function whose recurrence is T(n) = 2T(n/2) + Theta(n^2).
+
+    >>> foo3([1, 2, 3, 4])
+    158
+    >>> foo3([])
+    0
+    '''
+    if len(xs) <= 1:
+        return 0
+    total = 0
+    for x in xs:
+        for y in xs:
+            total += x * y
+    mid = len(xs) // 2
+    return total + foo3(xs[:mid]) + foo3(xs[mid:])
