@@ -39,20 +39,7 @@ Fork this repo and clone your fork on the lambda server.
 The instructions below ask you to directly edit the README of your
 fork.
 
-Install the python dependencies:
-```
-$ pip3 install -r requirements.txt
-```
-
-> **NOTE:**
-> This lab does not use the `graphviz` python package.  Instead, it
-> renders DOT files by calling the `dot` program directly.  The
-> binary is preinstalled on the lambda server, but on your own
-> computer you will need to install it yourself.  See
-> <https://graphviz.org/download/>.
-
-Verify that the supporting files are correct by running the
-doctests:
+Verify that the supporting files are correct by running the doctests:
 ```
 $ python3 -m doctest recurrences.py
 $ python3 -m doctest trace.py
@@ -136,16 +123,15 @@ three-node graph.
 
 ## Part 2: Functions are objects
 
-In python, functions are *first-class objects*.  That means you can
-store them in variables, pass them to other functions, and return
-them from other functions.  You have already used this in earlier
-labs:
+In python, functions are *first-class objects*.
+That means you can store them in variables, pass them to other functions, and return them from other functions.
+
+You have already used this in earlier labs:
 ```
 >>> xs = ['hello', 'hi', 'howdy']
 >>> xs.sort(key=len)
 ```
-The `key=len` argument passes the function `len` as a value to
-`sort`.
+The `key=len` argument passes the function `len` as a value to `sort`.
 
 Python's `inspect` module lets you look at any live function object.
 Try this in a python interpreter:
@@ -165,20 +151,6 @@ def fib(n):
 You can now read the source of any function in the lab without
 leaving the interpreter.  Try it on `bsearch`, `merge_sort`, and
 `quick_select`.
-
-A few related functions in the same module:
-
-| call | what it returns |
-| --- | --- |
-| `inspect.getsource(f)` | the source code of `f` |
-| `inspect.getdoc(f)` | the docstring of `f` (same as `f.__doc__`) |
-| `inspect.signature(f)` | the parameter list of `f` |
-| `inspect.getsourcefile(f)` | which `.py` file `f` came from |
-
-> **NOTE:**
-> `inspect.getsource` fails with `OSError` on built-in functions
-> like `print` and `len`, because there is no source file to read.
-> It works on functions defined in `.py` files.
 
 ### A decorator is a function that takes a function
 
