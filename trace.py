@@ -50,7 +50,7 @@ def add_trace(f):
       merge_sorted([1])
     [1, 2]
     '''
-    return _install(f, _print_tree, sys._getframe(1).f_globals)
+    _install(f, _print_tree, sys._getframe(1).f_globals)
 
 
 def add_trace_png(f, outputfile):
@@ -63,7 +63,7 @@ def add_trace_png(f, outputfile):
     '''
     def render(nodes):
         _write_png(nodes, outputfile)
-    return _install(f, render, sys._getframe(1).f_globals)
+    _install(f, render, sys._getframe(1).f_globals)
 
 
 def _install(f, render, caller_globals):

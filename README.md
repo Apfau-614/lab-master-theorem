@@ -54,11 +54,6 @@ but you can make it more readable by printing the string:
 <...>
 ```
 
-Read that source now.
-Everything below modifies `merge_sorted`,
-and once a function has been modified, `getsource` shows you the modified function
-instead of the original one.
-
 ### modifying a function
 
 Sometimes, we write functions that modify the behavior of other functions in order to make them faster or easier to debug.
@@ -98,13 +93,10 @@ Each call is printed on its own line, indented by the depth of the call stack
 at the moment that the call was made,
 so the indented output above is a picture of the *call tree* of `merge_sorted`.
 
-How does `add_trace` change a function that it did not write?
-Python resolves the name of a recursive function every time the function calls itself,
-by looking that name up in the globals of the module that defines it.
-`add_trace` rebinds that name to a new function that records the call
-and then calls the original one.
-Every reference to `merge_sorted` -- including the one that `merge_sorted` itself
-uses to make its recursive calls -- now reaches the new function.
+> **NOTE:**
+> How the `add_trace` function works is deep python black magic.
+> You are not expected to understand the *how* it works,
+> only the *what* it does.
 
 The change is permanent, and nothing kept a copy of the original function:
 ```
@@ -128,15 +120,25 @@ The indented output is convenient for a small function,
 but for a bigger one it is hard to read,
 so `trace.py` contains a second function called `add_trace_png`.
 It modifies the function in the same way,
-but it writes the call tree as graphviz DOT source to a `.dot` file
-and runs the `dot` program to render that file as a `.png` image.
+but it generates a png file of the call graph.
 ```
 >>> from trace import add_trace_png
 >>> add_trace_png(merge_sorted, 'merge_sorted.png')
 >>> merge_sorted(xs)
 [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 ```
-Add/commit/push the file to github so that the image below displays.
+Run `ls` to observe that the file `merge_sorted.png` has been added to your current folder.
+
+> **NOTE:**
+> You will also observe a file `merge_sorted.dot`.
+> This is source code for a language called *graphviz*,
+> which is designed for describing diagrams.
+> The `add_trace_png` function first generates this source code,
+> then calls the graphviz compiler to generate the image from the code.
+> It is very common to have programs that write other programs in other programming languages like this.
+> (But the *how* is still beyond the scope of what you need to know.)
+
+Then add/commit/push the file to github so that the image below displays.
 
 <img src=merge_sorted.png />
 
@@ -160,8 +162,8 @@ recomputes a value we already have.
 Trace the function to see the duplication in the call graph:
 ```
 >>> add_trace_png(power, 'power.png')
->>> power(2, 8)
-256
+>>> power(2, 32)
+4294967296
 ```
 Add/commit/push the file to github so that the image below displays.
 <img src=power.png />
@@ -169,6 +171,10 @@ Add/commit/push the file to github so that the image below displays.
 Every call with an even exponent appears twice in the graph.
 Counting the calls gives the recurrence
 $$T(n) = 2T(n/2) + \Theta(1).$$
+
+You should solve this with the master theorem.
+(The last step in the lab will be to fill out a table of recurrences like this,
+so if you don't solve it now, you'll have to solve it then.)
 
 ### Computing each subproblem once
 
@@ -192,8 +198,8 @@ Trace it and compare the two call graphs:
 ...         return half * half
 ...     return x * modified_pow(x, n - 1)
 >>> add_trace_png(modified_pow, 'modified_pow.png')
->>> modified_pow(2, 8)
-256
+>>> modified_pow(2, 32)
+4294967296
 ```
 Add/commit/push the file to github so that the image below displays.
 <img src=modified_pow.png />
@@ -201,6 +207,10 @@ Add/commit/push the file to github so that the image below displays.
 The call graph is now linear (instead of a tree).
 The recurrence is
 $$T(n) = T(n/2) + \Theta(1).$$
+
+Solve the recurrence.
+Observe that the answer it gives you is much smaller,
+and the corresponding graph you visualized is also much smaller.
 
 ### Automatic memoization
 
@@ -210,7 +220,8 @@ Storing a repeated subproblem and reusing it is called *memoization*.
 For the `modified_pow` function, memoization was easy to do by hand.
 But for most recursive functions it is more difficult.
 
-A famous example is a function that computes the Fibonacci numbers
+A famous example of this difficulty is the Fibonacci numbers,
+which is computed by the `fib` function below.
 ```python
 >>> from recurrences import fib
 >>> print(inspect.getsource(fib))
@@ -245,23 +256,30 @@ We apply it to `fib`, and then ask `add_trace_png` for a second picture:
 ```
 >>> import functools
 >>> fib = functools.lru_cache(fib)
+```
+
+> **NOTE:**
+> Unlike the `add_trace` and `add_trace_png` functions,
+> `lru_cache` returns the modified function,
+> and so observe that we are assigning the result above.
+> For containers, we had the past-tense vs imperative convention to help us know whether we are copying a container (e.g. `sorted`) or modifying the container (e.g. `.sort()`);
+> there is no similar convention for these meta functions.
+
+Now we can trace `fib` like
+```
 >>> add_trace_png(fib, 'fast_fib.png')
 >>> fib(8)
 21
->>> fib(40)
-102334155
 ```
 Add/commit/push the file to github so that the image below displays.
 <img src=fast_fib.png />
 
-Notice the order of the two calls.
-The cache ends up on the *outside* of the trace:
+And we can actually run on large inputs quickly:
+```
+>>> fib(40)
+102334155
+```
 
-    fib(8) -> cache -> trace -> the original fib
-
-A call whose answer is already in the cache never reaches the trace,
-so the picture contains a node for each *distinct* call that had to be computed,
-and the blue nodes from the previous picture have all disappeared.
 The recurrence is
 $$T(n) = T(n-1) + \Theta(1).$$
 Like the original `fib` recurrence, this is not of the form that the master theorem requires,
