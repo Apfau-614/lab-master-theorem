@@ -310,15 +310,15 @@ For each function:
 | `merge_sorted`    | $T(n) = 2T(n/2) + \Theta(n)$ | yes | $T(n) = \Theta(n\log n)$ | no |
 | `quick_sorted`    | $T(n) = 2T(n/2) + \Theta(n)$ | yes | $T(n) = \Theta(n\log n)$ | |
 | `quick_select`    | $T(n) =  T(n/2) + \Theta(n)$ | yes | | |
-| `sequential_search_rec` | | | | |
+| `sequential_search_rec` | $T(n) = T(n-1) = \Theta(1)$ | No | | |
 | `power`           | $T(n) = 2T(n/2) + \Theta(1)$ | yes | | yes |
 | `modified_pow`    | $T(n) =  T(n/2) + \Theta(1)$ | yes | | no (already memoized) |
 | `fib`             | $T(n) =  T(n-1) + T(n-2) + \Theta(1)$ | no  | --- | yes |
 | `fast_fib` (memoized `fib`) | $T(n) =  T(n-1) + \Theta(1)$ | no  | --- | no (already memoized) |
 | `grid_paths`      | | | | |
-| `foo1`            | | | | |
-| `foo2`            | | | | |
-| `foo3`            | | | | |
+| `foo1`            | $T(n) = 4T(n/2) + \Theta(1)$ | Yes | | |
+| `foo2`            | $T(n) = 2T(n/2) + \Theta(n)$ | Yes | | |
+| `foo3`            | $T(n) = 2T(n/2) + \Theta(n^2)$ | | | |
 
 ## Submission
 
