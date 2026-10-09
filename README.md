@@ -1,7 +1,8 @@
 <!-- byexample: +ellipsis -->
 
 In this lab we will practice working with recursive functions and the master theorem.
-You will also see some new 
+You will also see some new functional programming techniques for debugging,
+and a technique called *memoization* for making recursive code faster.
 
 ## Part 0: Setup
 
