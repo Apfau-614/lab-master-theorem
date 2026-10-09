@@ -1,115 +1,165 @@
 '''
-The trace decorator writes the recursion tree of a function to a DOT file.
+The trace functions write the recursion tree of a function to a picture.
 
-The decorator is transparent: the traced function behaves exactly
-like the original function (same inputs, same output, same
-exceptions).  It additionally records every call to the function --
-including recursive calls, provided the function calls itself by
-name -- and writes them to a graphviz DOT file.
+Unlike a decorator, these functions do not return a new function for
+you to assign; they *modify* the function that you pass to them.
+Python resolves the name of a recursive function in the globals of the
+module that defines it every time the function makes a recursive call,
+so rebinding that one name is enough to route every recursive call
+through a wrapper:
 
-The DOT source is generated directly, without the graphviz library.
-If outputfile ends in .png, the decorator shells out to the `dot`
-program with subprocess.run to render the picture; otherwise it
-writes the DOT source and stops there:
+    >>> from recurrences import merge_sorted
+    >>> add_trace(merge_sorted)
+    >>> merge_sorted([2, 1])
+    merge_sorted([2, 1])
+      merge_sorted([2])
+      merge_sorted([1])
+    [1, 2]
 
-    $ dot -Tpng fib.dot -o fib.png
+The change lasts for the rest of the python session.  There is no
+remove_trace; to get the original function back you must restart the
+interpreter.
 
-Doctests:
+Each traced function keeps its own state in the closure of its
+wrapper, so tracing several functions at the same time is fine.
 
-    >>> from recurrences import binom
-    >>> binom3 = trace(binom)
-    >>> binom3(5, 2) == binom(5, 2)
-    True
-    >>> binom3.__name__
-    'binom'
-    >>> binom3.__wrapped__ is binom
-    True
+Run the doctests with:
+
+    $ python3 -m doctest trace.py
 '''
 import functools
 import os
 import subprocess
-import types
+import sys
 
 
-def trace(f, outputfile=None, highlight_duplicates=True):
+def add_trace(f):
     '''
-    Return a version of f that writes its recursion tree to outputfile.
+    Modify f so that it prints a picture of its call tree.
 
-    The wrapper is transparent: it returns the same value as f and
-    propagates the same exceptions.  As a side effect, it records
-    the calls made to the wrapped function and, when outputfile is
-    given, writes them as graphviz DOT source to that file.  Each
-    node is labelled with the name of the function and the
-    arguments of the call.
+    Every call is printed on its own line, indented by the depth of
+    the call stack at the moment the call was made.  The tree is
+    printed when the outermost call returns, just before that call
+    returns its value.
 
-    If outputfile ends in .png, the DOT source is written to the
-    matching .dot file and the `dot` program is run to render the
-    PNG.  If highlight_duplicates is true, any call whose arguments
-    have been seen before is filled light blue; the first call with
-    a given set of arguments stays white.
-
-    >>> from recurrences import binom
-    >>> binom3 = trace(binom)
-    >>> binom3(5, 2) == binom(5, 2)
-    True
+    >>> from recurrences import merge_sorted
+    >>> add_trace(merge_sorted)
+    >>> merge_sorted([2, 1])
+    merge_sorted([2, 1])
+      merge_sorted([2])
+      merge_sorted([1])
+    [1, 2]
     '''
-    nodes = []     # list of (node_id, label, parent_id, duplicate)
-    stack = []     # current call stack of node_ids
+    return _install(f, _print_tree, sys._getframe(1).f_globals)
+
+
+def add_trace_png(f, outputfile):
+    '''
+    Modify f so that its call tree is written to outputfile.
+
+    The tree is written as graphviz DOT source to a file with the
+    same name as outputfile but with a .dot extension, and then the
+    `dot` program renders that file to the PNG named by outputfile.
+    '''
+    def render(nodes):
+        _write_png(nodes, outputfile)
+    return _install(f, render, sys._getframe(1).f_globals)
+
+
+def _install(f, render, caller_globals):
+    '''
+    Replace f with a version of itself that reports its calls to render.
+
+    f is replaced in two places.  The globals of the module that
+    defines f must be updated, because that is where python looks up
+    the name of a recursive function when the function calls itself.
+    The caller's globals are updated too, because a function that has
+    been imported into the interactive interpreter is reachable under
+    the same name from there.
+
+    If f has already been memoized with functools.lru_cache, the
+    memoization is kept and the cache ends up on the outside of the
+    trace, so that a call which is answered from the cache never
+    reaches the trace and never appears in the picture.
+    '''
+    root = _root(f)
+    wrapper = _wrap(root, render)
+    if hasattr(f, 'cache_info') and hasattr(f, 'cache_clear'):
+        wrapper = functools.lru_cache(wrapper)
+    root.__globals__[root.__name__] = wrapper
+    if caller_globals.get(root.__name__) is f:
+        caller_globals[root.__name__] = wrapper
+    return wrapper
+
+
+def _root(f):
+    '''
+    Follow the __wrapped__ chain down to the function with the code.
+
+    The wrappers built by functools.lru_cache and by _install both
+    point at the function they wrap through __wrapped__, so walking
+    the chain reaches the function whose body contains the recursive
+    calls.
+    '''
+    while hasattr(f, '__wrapped__'):
+        f = f.__wrapped__
+    return f
+
+
+def _wrap(f, render):
+    '''
+    Return a version of f that records its calls and calls render.
+
+    render is called once, with the list of (node_id, parent_id,
+    label, duplicate) tuples of the outermost call, in the order in
+    which the calls were made.  That order is preorder, so a parent
+    always appears before its children.
+    '''
+    stack = []     # node_ids of the calls that are still running
+    nodes = []     # (node_id, parent_id, label, duplicate) in call order
     counter = [0]  # mutable counter of node_ids
-    seen = set()   # labels of calls already made
+    seen = set()   # labels of the calls that have already been made
 
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         node_id = counter[0]
         counter[0] += 1
         label = f.__name__ + _label(args, kwargs)
-        dup = highlight_duplicates and label in seen
+        nodes.append((node_id, stack[-1] if stack else None,
+                      label, label in seen))
         seen.add(label)
-        parent = stack[-1] if stack else None
-        nodes.append((node_id, label, parent, dup))
         stack.append(node_id)
         try:
-            return traced_f(*args, **kwargs)
+            return f(*args, **kwargs)
         finally:
             stack.pop()
-            # When the outermost call returns, write the tree and
+            # When the outermost call returns, draw the tree and
             # reset the state so the next top-level call starts fresh.
             if not stack:
-                if outputfile is not None:
-                    _render(nodes, outputfile)
+                render(nodes)
                 counter[0] = 0
                 del nodes[:]
                 seen.clear()
 
-    # Follow the __wrapped__ chain (functools.lru_cache and friends
-    # expose the function they wrap this way) down to the underlying
-    # function whose code contains the recursive calls.
-    code_f = f
-    while not hasattr(code_f, '__code__') and hasattr(code_f, '__wrapped__'):
-        code_f = code_f.__wrapped__
-
-    # Duplicate code_f with a private copy of its globals in which its
-    # own name points at the wrapper.  Recursive calls inside the body
-    # then reach the wrapper, while the original module's globals stay
-    # untouched.
-    g = dict(code_f.__globals__)
-    g[code_f.__name__] = wrapper
-    code_copy = types.FunctionType(
-        code_f.__code__, g, code_f.__name__,
-        code_f.__defaults__, code_f.__closure__,
-    )
-    code_copy.__kwdefaults__ = code_f.__kwdefaults__
-
-    # Rebuild any outer wrapper (e.g. functools.lru_cache) on top of
-    # the copy, so that calls from the wrapper go through it.
-    if code_f is f:
-        traced_f = code_copy
-    elif hasattr(f, 'cache_info'):
-        traced_f = functools.lru_cache(code_copy)
-    else:
-        traced_f = code_copy
-
     return wrapper
+
+
+def _print_tree(nodes):
+    '''
+    Print a list of (node_id, parent_id, label, duplicate) tuples as
+    an indented tree.
+
+    >>> _print_tree([(0, None, 'f(2)', False),
+    ...              (1, 0, 'f(1)', False),
+    ...              (2, 1, 'f(0)', True)])
+    f(2)
+      f(1)
+        f(0)
+    '''
+    depth = {None: -1}
+    for node_id, parent_id, label, dup in nodes:
+        depth[node_id] = depth[parent_id] + 1
+        print('  ' * depth[node_id] + label)
 
 
 def _label(args, kwargs):
@@ -138,14 +188,18 @@ def _escape(s):
     return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
 
 
-def _render(nodes, outputfile):
+def _write_png(nodes, outputfile):
     '''
-    Write the tree as DOT source and, for a .png name, a PNG too.
+    Write the tree as DOT source and render it with the `dot` program.
 
-    If outputfile ends in .png, the DOT source is written to the
-    matching .dot file and the `dot` program is run with
-    subprocess.run to produce the picture; otherwise outputfile is
-    itself the DOT file.
+    The DOT source goes to a file with the same name as outputfile
+    but with a .dot extension, and subprocess.run is used to run the
+    `dot` program on it:
+
+        $ dot -Tpng fib.dot -o fib.png
+
+    An outputfile that does not end in .png is written as DOT source
+    and nothing else happens.
     '''
     base, ext = os.path.splitext(outputfile)
     dotfile = base + '.dot' if ext == '.png' else outputfile
@@ -156,27 +210,31 @@ def _render(nodes, outputfile):
 
 def _write_dot(nodes, dotfile):
     '''
-    Write a list of (node_id, label, parent_id, duplicate) tuples as DOT.
+    Write a list of (node_id, parent_id, label, duplicate) tuples as
+    DOT source.
 
-    Duplicate calls (where duplicate is true) are filled light blue;
-    the first call with a given set of arguments stays white.
+    A call whose arguments have been seen before is filled light
+    blue; the first call with a given set of arguments stays white.
+    A blue node is a call that recomputes a value the function has
+    already computed once, which is exactly the kind of call that
+    memoization removes.
 
     The DOT language is a small text format, so we format it by hand
-    instead of pulling in the graphviz library.  The resulting file
-    can be rendered by any of the graphviz layout programs:
+    instead of pulling in the graphviz library.  Any of the graphviz
+    layout programs can render the result:
 
         $ dot -Tpng fib.dot -o fib.png
     '''
     lines = ['digraph {']
     lines.append('    node [shape=box fontname="Courier" fontsize="10"]')
-    for node_id, label, parent, dup in nodes:
+    for node_id, parent_id, label, dup in nodes:
         attrs = 'label="{}"'.format(_escape(label))
         if dup:
             attrs += ' fillcolor="lightblue" style="filled"'
         lines.append('    {} [{}]'.format(node_id, attrs))
-    for node_id, label, parent, dup in nodes:
-        if parent is not None:
-            lines.append('    {} -> {}'.format(parent, node_id))
+    for node_id, parent_id, label, dup in nodes:
+        if parent_id is not None:
+            lines.append('    {} -> {}'.format(parent_id, node_id))
     lines.append('}')
     with open(dotfile, 'w') as fp:
         fp.write('\n'.join(lines) + '\n')

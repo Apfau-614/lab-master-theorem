@@ -54,13 +54,86 @@ but you can make it more readable by printing the string:
 <...>
 ```
 
+Read that source now.
+Everything below modifies `merge_sorted`,
+and once a function has been modified, `getsource` shows you the modified function
+instead of the original one.
+
+### modifying a function
+
 Sometimes, we write functions that modify the behavior of other functions in order to make them faster or easier to debug.
-The `trace.py` file contains `trace` function inside of it that prints the *call graph* for a recursive function.
+The `trace.py` file contains a function called `add_trace` that modifies the function you pass to it
+so that it prints a picture of its *call tree*.
+
+Notice that `add_trace` does not return a new function for you to assign;
+it modifies `merge_sorted` itself.
 Try it with the code below:
 ```
->>> from trace import trace
->>> trace_merge_sorted = trace(merge_sorted, 'merge_sorted.png')
->>> trace_merge_sorted(xs)
+>>> from trace import add_trace
+>>> add_trace(merge_sorted)
+>>> merge_sorted(xs)
+merge_sorted([1, 5, 4, 2, 7, 9, 8, 3, 6, 10])
+  merge_sorted([1, 5, 4, 2, 7])
+    merge_sorted([1, 5])
+      merge_sorted([1])
+      merge_sorted([5])
+    merge_sorted([4, 2, 7])
+      merge_sorted([4])
+      merge_sorted([2, 7])
+        merge_sorted([2])
+        merge_sorted([7])
+  merge_sorted([9, 8, 3, 6, 10])
+    merge_sorted([9, 8])
+      merge_sorted([9])
+      merge_sorted([8])
+    merge_sorted([3, 6, 10])
+      merge_sorted([3])
+      merge_sorted([6, 10])
+        merge_sorted([6])
+        merge_sorted([10])
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+```
+
+Each call is printed on its own line, indented by the depth of the call stack
+at the moment that the call was made,
+so the indented output above is a picture of the *call tree* of `merge_sorted`.
+
+How does `add_trace` change a function that it did not write?
+Python resolves the name of a recursive function every time the function calls itself,
+by looking that name up in the globals of the module that defines it.
+`add_trace` rebinds that name to a new function that records the call
+and then calls the original one.
+Every reference to `merge_sorted` -- including the one that `merge_sorted` itself
+uses to make its recursive calls -- now reaches the new function.
+
+The change is permanent, and nothing kept a copy of the original function:
+```
+>>> merge_sorted(xs)
+merge_sorted([...])
+...
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+```
+The only way to get the original `merge_sorted` back is to exit the python interpreter
+and start a new one:
+```
+$ python3
+>>> from recurrences import merge_sorted
+>>> merge_sorted(xs)
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+```
+
+### drawing a picture
+
+The indented output is convenient for a small function,
+but for a bigger one it is hard to read,
+so `trace.py` contains a second function called `add_trace_png`.
+It modifies the function in the same way,
+but it writes the call tree as graphviz DOT source to a `.dot` file
+and runs the `dot` program to render that file as a `.png` image.
+```
+>>> from trace import add_trace_png
+>>> add_trace_png(merge_sorted, 'merge_sorted.png')
+>>> merge_sorted(xs)
 [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 ```
 Add/commit/push the file to github so that the image below displays.
@@ -77,7 +150,7 @@ edge from each call to the calls it makes.
 Look at the `power` function from `recurrences.py`:
 ```
 >>> from recurrences import power
->>> inspect.getsource(power)
+>>> print(inspect.getsource(power))
 <...>
 ```
 When `n` is even, the branch `if n % 2 == 0` calls `power(x, n // 2)`
@@ -86,9 +159,8 @@ recomputes a value we already have.
 
 Trace the function to see the duplication in the call graph:
 ```
->>> from trace import trace
->>> trace_power = trace(power, 'power.png')
->>> trace_power(2, 8)
+>>> add_trace_png(power, 'power.png')
+>>> power(2, 8)
 256
 ```
 Add/commit/push the file to github so that the image below displays.
@@ -119,8 +191,8 @@ Trace it and compare the two call graphs:
 ...         half = modified_pow(x, n // 2)
 ...         return half * half
 ...     return x * modified_pow(x, n - 1)
->>> trace_modified_pow = trace(modified_pow, 'modified_pow.png')
->>> trace_modified_pow(2, 8)
+>>> add_trace_png(modified_pow, 'modified_pow.png')
+>>> modified_pow(2, 8)
 256
 ```
 Add/commit/push the file to github so that the image below displays.
@@ -153,10 +225,9 @@ Even trying to compute `fib(40)` is already impossible.
 
 Trace the runtime on a small value and observe:
 ```
->>> trace_fib = trace(fib, 'fib.png')
->>> trace_fib(8)
+>>> add_trace_png(fib, 'fib.png')
+>>> fib(8)
 21
->>> trace_fast_fib(40) # will take years to finish; run it and press CTRL-C to stop
 ```
 Add/commit/push the file to github so that the image below displays.
 <img src=fib.png />
@@ -170,27 +241,31 @@ There is no single subproblem to store in a variable.
 ### `functools.lru_cache`
 
 Python provides a function that memoizes for us automatically called `lru_cache` in the `functools` module.
-We can apply it to the `fib` function like so:
+We apply it to `fib`, and then ask `add_trace_png` for a second picture:
 ```
 >>> import functools
->>> fast_fib = functools.lru_cache(fib)
-```
-And now let's trace `fib` instead of `fast_fib`:
-```
->>> trace_fast_fib = trace(fast_fib, 'fast_fib.png')
->>> trace_fast_fib(8)
+>>> fib = functools.lru_cache(fib)
+>>> add_trace_png(fib, 'fast_fib.png')
+>>> fib(8)
 21
->>> trace_fast_fib(40) # should now finish instantly
+>>> fib(40)
 102334155
 ```
 Add/commit/push the file to github so that the image below displays.
 <img src=fast_fib.png />
 
-The graph now has a node for each distinct call to `fib` and most of the duplicates have been eliminated.
+Notice the order of the two calls.
+The cache ends up on the *outside* of the trace:
+
+    fib(8) -> cache -> trace -> the original fib
+
+A call whose answer is already in the cache never reaches the trace,
+so the picture contains a node for each *distinct* call that had to be computed,
+and the blue nodes from the previous picture have all disappeared.
 The recurrence is
 $$T(n) = T(n-1) + \Theta(1).$$
-Like the original `fib` recurrence, it is not solvable by the master theorem does not apply.
-But this recurrence simplifies to $T(n) = \Theta(n)$.
+Like the original `fib` recurrence, this is not of the form that the master theorem requires,
+but it simplifies to $T(n) = \Theta(n)$.
 
 ## Part 3: the big table
 
@@ -198,10 +273,12 @@ Your last task of this lab is to fill out the table below.
 For each function:
 1. View the code with the `inspect.getsource` function.
     Then determine the recurrence and write it in the second column.
+    Do this step for *all* of the functions before you do step 3 for any of them,
+    because after a function has been traced `getsource` shows you the traced version.
 2. If the recurrence has a form suitable for the master theorem,
     write `yes` in the third column and the solution in the fourth column.
     Otherwise, write `no` in the third column and `---` in the fourth column.
-3. For the final column, plot the call graph with the `trace` function.
+3. For the final column, plot the call graph with the `add_trace_png` function.
     If there are repeated calls (blue cells), then memoization will improve runtime,
     and write `yes`.
     Otherwise, write `no`.
@@ -214,9 +291,10 @@ For each function:
 | `quick_select`    | $T(n) =  T(n/2) + \Theta(n)$ | yes | | |
 | `sequential_search_rec` | | | | |
 | `power`           | $T(n) = 2T(n/2) + \Theta(1)$ | yes | | yes |
-| `modified_power`  | $T(n) =  T(n/2) + \Theta(1)$ | yes | | no (already memoized) |
+| `modified_pow`    | $T(n) =  T(n/2) + \Theta(1)$ | yes | | no (already memoized) |
 | `fib`             | $T(n) =  T(n-1) + T(n-2) + \Theta(1)$ | no  | --- | yes |
-| `fast_fib`        | $T(n) =  T(n-1) + \Theta(1)$ | no  | --- | no (already memoized) |
+| `fast_fib` (memoized `fib`) | $T(n) =  T(n-1) + \Theta(1)$ | no  | --- | no (already memoized) |
+| `grid_paths`      | | | | |
 | `foo1`            | | | | |
 | `foo2`            | | | | |
 | `foo3`            | | | | |
