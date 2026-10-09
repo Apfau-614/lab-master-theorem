@@ -131,6 +131,7 @@ but it generates a png file of the call graph.
 Run `ls` to observe that the file `merge_sorted.png` has been added to your current folder.
 
 > **NOTE:**
+
 > You will also observe a file `merge_sorted.dot`.
 > This is source code for a language called *graphviz*,
 > which is designed for describing diagrams.
