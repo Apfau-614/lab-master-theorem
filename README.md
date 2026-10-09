@@ -160,7 +160,7 @@ Look at the `power` function from `recurrences.py`:
 When `n` is even, the branch `if n % 2 == 0` calls `power(x, n // 2)`
 **twice** with exactly the same arguments, so the second call
 recomputes a value we already have.
-
+1
 Trace the function to see the duplication in the call graph:
 ```
 >>> add_trace_png(power, 'power.png')
