@@ -38,29 +38,29 @@ def bsearch(xs, y, lo=0, hi=None):
     return bsearch(xs, y, mid + 1, hi)
 
 
-def merge_sort(xs):
+def merge_sorted(xs):
     '''
-    Return a sorted copy of the tuple xs.
+    Return a sorted copy of the list xs.
 
-    >>> merge_sort((3, 1, 4, 1, 5, 9, 2, 6))
-    (1, 1, 2, 3, 4, 5, 6, 9)
-    >>> merge_sort(())
-    ()
-    >>> merge_sort((1,))
-    (1,)
+    >>> merge_sorted([3, 1, 4, 1, 5, 9, 2, 6])
+    [1, 1, 2, 3, 4, 5, 6, 9]
+    >>> merge_sorted([])
+    []
+    >>> merge_sorted([1])
+    [1]
     '''
     if len(xs) <= 1:
         return xs
     mid = len(xs) // 2
-    return _merge(merge_sort(xs[:mid]), merge_sort(xs[mid:]))
+    return _merge(merge_sorted(xs[:mid]), merge_sorted(xs[mid:]))
 
 
 def _merge(a, b):
     '''
-    Merge two sorted tuples into a single sorted tuple.
+    Merge two sorted lists into a single sorted list.
 
-    >>> _merge((1, 3), (2, 4))
-    (1, 2, 3, 4)
+    >>> _merge([1, 3], [2, 4])
+    [1, 2, 3, 4]
     '''
     out = []
     i = j = 0
@@ -73,24 +73,24 @@ def _merge(a, b):
             j += 1
     out.extend(a[i:])
     out.extend(b[j:])
-    return tuple(out)
+    return out
 
 
-def quick_sort(xs):
+def quick_sorted(xs):
     '''
-    Return a sorted copy of the tuple xs.
+    Return a sorted copy of the list xs.
 
-    >>> quick_sort((3, 1, 4, 1, 5, 9, 2, 6))
-    (1, 1, 2, 3, 4, 5, 6, 9)
-    >>> quick_sort(())
-    ()
+    >>> quick_sorted([3, 1, 4, 1, 5, 9, 2, 6])
+    [1, 1, 2, 3, 4, 5, 6, 9]
+    >>> quick_sorted([])
+    []
     '''
     if len(xs) <= 1:
         return xs
     pivot = xs[0]
-    less = tuple(x for x in xs[1:] if x < pivot)
-    more = tuple(x for x in xs[1:] if x >= pivot)
-    return quick_sort(less) + (pivot,) + quick_sort(more)
+    less = [x for x in xs[1:] if x < pivot]
+    more = [x for x in xs[1:] if x >= pivot]
+    return quick_sorted(less) + [pivot] + quick_sorted(more)
 
 
 def quick_select(xs, k):
