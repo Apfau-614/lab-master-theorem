@@ -1,9 +1,10 @@
-# lab: master theorem
+# lab: meta programming and master theorem
 <!-- byexample: +ellipsis -->
 
 In this lab we will practice working with recursive functions and the master theorem.
-You will also see some new functional programming techniques for debugging,
-and a technique called *memoization* for making recursive code faster.
+You will also see some new *meta* programming techniques for debugging and making recursive functions faster.
+
+<img src=img/python_is_easy.jpg width=300px />
 
 ## Part 0: Setup
 
