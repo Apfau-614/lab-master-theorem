@@ -84,7 +84,9 @@ def trace(f, outputfile=None, highlight_duplicates=True):
     # what makes recursive calls inside f's body reach the wrapper:
     # when f's body evaluates `f(...)`, it looks up `f` in its
     # module's global namespace, which now points at the wrapper.
-    f.__globals__[f.__name__] = wrapper
+    g = getattr(f, '__globals__', None) or f.__wrapped__.__globals__
+    g[f.__name__] = wrapper
+    #f.__globals__[f.__name__] = wrapper
 
     return wrapper
 
