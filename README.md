@@ -310,12 +310,12 @@ For each function:
 | `merge_sorted`    | $T(n) = 2T(n/2) + \Theta(n)$ | yes | $T(n) = \Theta(n\log n)$ | no |
 | `quick_sorted`    | $T(n) = 2T(n/2) + \Theta(n)$ | yes | $T(n) = \Theta(n\log n)$ | |
 | `quick_select`    | $T(n) =  T(n/2) + \Theta(n)$ | yes | $T(n) = \Theta(\log n)$ | |
-| `sequential_search_rec` | $T(n) = T(n-1) = \Theta(1)$ | No | -- | |
+| `sequential_search_rec` | $T(n) = T(n-1) = \Theta(1)$ | No | --- | |
 | `power`           | $T(n) = 2T(n/2) + \Theta(1)$ | yes | $T(n) = \Theta(n\log n)$ | yes |
 | `modified_pow`    | $T(n) =  T(n/2) + \Theta(1)$ | yes | $T(n) = \Theta(\log n)$ | no (already memoized) |
 | `fib`             | $T(n) =  T(n-1) + T(n-2) + \Theta(1)$ | no  | --- | yes |
 | `fast_fib` (memoized `fib`) | $T(n) =  T(n-1) + \Theta(1)$ | no  | --- | no (already memoized) |
-| `grid_paths`      | $T(k) = 2T(k-1) + O(1)$ | No | -- | |
+| `grid_paths`      | $T(k) = 2T(k-1) + O(1)$ | No | --- | |
 | `foo1`            | $T(n) = 4T(n/2) + \Theta(1)$ | Yes | $T(n) = \Theta(n^2)$ | |
 | `foo2`            | $T(n) = 2T(n/2) + \Theta(n)$ | Yes | $T(n) = \Theta(n\log n)$ | |
 | `foo3`            | $T(n) = 2T(n/2) + \Theta(n^2)$ | Yes | $T(n) = \Theta(n^2)$ | |
