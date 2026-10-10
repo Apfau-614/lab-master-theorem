@@ -1,0 +1,28 @@
+digraph {
+    node [shape=box fontname="Courier" fontsize="10"]
+    0 [label="quick_sorted([1, 5, 4, 2, 7, 9, 8, 3, 6, 10])"]
+    1 [label="quick_sorted([])"]
+    2 [label="quick_sorted([5, 4, 2, 7, 9, 8, 3, 6, 10])"]
+    3 [label="quick_sorted([4, 2, 3])"]
+    4 [label="quick_sorted([2, 3])"]
+    5 [label="quick_sorted([])" fillcolor="lightblue" style="filled"]
+    6 [label="quick_sorted([3])"]
+    7 [label="quick_sorted([])" fillcolor="lightblue" style="filled"]
+    8 [label="quick_sorted([7, 9, 8, 6, 10])"]
+    9 [label="quick_sorted([6])"]
+    10 [label="quick_sorted([9, 8, 10])"]
+    11 [label="quick_sorted([8])"]
+    12 [label="quick_sorted([10])"]
+    0 -> 1
+    0 -> 2
+    2 -> 3
+    3 -> 4
+    4 -> 5
+    4 -> 6
+    3 -> 7
+    2 -> 8
+    8 -> 9
+    8 -> 10
+    10 -> 11
+    10 -> 12
+}

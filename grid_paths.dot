@@ -1,0 +1,4 @@
+digraph {
+    node [shape=box fontname="Courier" fontsize="10"]
+    0 [label="grid_paths(0, 0)"]
+}

@@ -1,0 +1,12 @@
+digraph {
+    node [shape=box fontname="Courier" fontsize="10"]
+    0 [label="sequential_search_rec([1, 3, 5, 4, 2, 0], 2)"]
+    1 [label="sequential_search_rec([3, 5, 4, 2, 0], 2)"]
+    2 [label="sequential_search_rec([5, 4, 2, 0], 2)"]
+    3 [label="sequential_search_rec([4, 2, 0], 2)"]
+    4 [label="sequential_search_rec([2, 0], 2)"]
+    0 -> 1
+    1 -> 2
+    2 -> 3
+    3 -> 4
+}
